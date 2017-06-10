@@ -131,9 +131,9 @@ class Painter extends JPanel implements MouseListener,
     String mainShape = "FreeHand";
     
     //	flag for when mouse is dragging to make a preview
-    int drag = 1;
+    int drag = 0;
     //	flag to say when mouse is released and shape gets printed
-    int print = 1;
+    int print = 0;
     
     //	point that mouse gets pressed at
     Point pt1 = new Point(0, 0);
@@ -159,17 +159,17 @@ class Painter extends JPanel implements MouseListener,
 	//		0 for outline, 1 for filled
     int outFill = 0;
     //	clear image flag
-    int clear = 1;
+    int clear = 0;
     //	undo last action flag
-    int undo = 1;
+    int undo = 0;
     
     //	flag to display image information in strings on screen
-    int debug = 1;
+    int debug = 0;
     //	flag for dragging while in freehand
     //  	so that last free hand shape can be undone
-    int freeHandFlag = 1;
+    int freeHandFlag = 0;
     //	random colour flag
-    int randCol = 1;
+    int randCol = 0;
     
     //	checks to see if image is null
     public void checkTShapes() {
@@ -223,8 +223,8 @@ class Painter extends JPanel implements MouseListener,
         g.drawImage(thrownShapes, 0, 0, this);
         
         g.setColor(mainCol);
-        //	if colour is set to random
-        if (randCol == 0) {
+        //	colour is set to random
+        if (randCol == 1) {
             //	initialise random colour
             Random jambon = new Random();
             mainCol = new Color(jambon.nextInt(256), 
@@ -232,39 +232,39 @@ class Painter extends JPanel implements MouseListener,
         }
         
         //	print shape on to image
-        if (print == 0) {
+        if (print == 1) {
             //	if not a freehand shape set undo buffer
-            if (freeHandFlag == 1) {
+            if (freeHandFlag == 0) {
                 UTShaa.drawImage(thrownShapes, 0, 0, null);
             }
             //	draw shape
             drawShape(tShaa);
-            print = 1;
+            print = 0;
         }
         
         //draw shape while dragging mouse
-        if (drag == 0) {
+        if (drag == 1) {
             drawShape(g);
         }
         
-        //put white rectangle on image to clear everything
-        if (clear == 0) {
+        //	put white rectangle on image to clear everything
+        if (clear == 1) {
             g.setColor(Color.WHITE);
             g.fillRect(0, 0, w, h);
             tShaa.setColor(Color.WHITE);
             tShaa.fillRect(0, 0, w, h);
-            clear = 1;
+            clear = 0;
         }
         
-        //undo last move
-        if (undo == 0) {
+        //	undo last move
+        if (undo == 1) {
             tShaa.drawImage(undoThrownShapes, 0, 0, null);
-            undo = 1;
+            undo = 0;
         }
         
         
-        //test lines for info
-        if (debug == 0) {
+        //	test lines for info
+        if (debug == 1) {
             g.drawString("" + mainCol.toString(), 50, 50);
             g.drawString("" + mainShape, 50, 100);
 
@@ -282,105 +282,143 @@ class Painter extends JPanel implements MouseListener,
     }
     
     void drawShape(Graphics g2) {
+		
+		//	get difference between the two points regardless 
+		//		of relative position
+		int cW = pt1.getX() < pt2.getX() ? 
+			(int)(pt2.getX() - pt1.getX()) : 
+			(int)(pt1.getX() - pt2.getX());
+		int cY = pt1.getY() < pt2.getY() ? 
+			(int)(pt2.getY() - pt1.getY()) : 
+			(int)(pt1.getY() - pt2.getY());
+		
+		g2.setColor(mainCol);
+		
         
-        g2.setColor(mainCol);
-        
+		if (mainShape.equals("FreeHand")) {
+			//	draw line from previous pt2 to current pt2
+			g2.drawLine((int)pt3.getX(), (int)pt3.getY(), 
+				(int)pt2.getX(), (int)pt2.getY());
+			//pt3.x = (int)pt2.getX();
+			//pt3.y = (int)pt2.getY();
+		} else if (mainShape.equals("Line")) {
+			//	line from mouse press point to 
+			//		mouse drag/release point
+			g2.drawLine((int)pt1.getX(), (int)pt1.getY(), 
+				(int)pt2.getX(), (int)pt2.getY());
+		
         //	outlined shape
-        if (outFill == 0) {
-            //	get difference between the two points regardless of relative position
-            int cW = pt1.getX() < pt2.getX() ? (int)(pt2.getX() - pt1.getX()) : (int)(pt1.getX() - pt2.getX());
-            int cY = pt1.getY() < pt2.getY() ? (int)(pt2.getY() - pt1.getY()) : (int)(pt1.getY() - pt2.getY());
+        } else if (outFill == 0) {
             
-            g2.setColor(mainCol);
-            
-            if (mainShape.equals("FreeHand")) {
-                //draw line from previous pt2 to current pt2
-                g2.drawLine((int)pt3.getX(), (int)pt3.getY(), (int)pt2.getX(), (int)pt2.getY());
-                //pt3.x = (int)pt2.getX();
-                //pt3.y = (int)pt2.getY();
-            } else if (mainShape.equals("Line")) {
-                //line from mouse press point to mouse drag/release point
-                g2.drawLine((int)pt1.getX(), (int)pt1.getY(), (int)pt2.getX(), (int)pt2.getY());
-            } else if (mainShape.equals("Circle")) {
-                //pythagors therom to get circle (not oval) radius
-                int circtacular = 2 * (int)(Math.sqrt((Math.pow(cW, 2) + Math.pow(cY, 2))));
-                g2.drawOval((int)(pt1.getX() - (circtacular / 2)), ((int)pt1.getY() - (circtacular / 2)), circtacular, circtacular);
+            if (mainShape.equals("Circle")) {
+                //	pythagors therom to get circle (not oval) radius
+                int circtacular = 2 * (int)(Math.sqrt(
+					(Math.pow(cW, 2) + Math.pow(cY, 2))));
+				//	draw oval with equal height and width (a circle)
+				//		using pt1 as centre point, the drawOval method
+				//		draws from the top left most point, rather than
+				//		the mid point, hence subtracting the new radius
+                g2.drawOval((int)(pt1.getX() - (circtacular / 2)), 
+					((int)pt1.getY() - (circtacular / 2)), 
+					circtacular, circtacular);
+		
             } else if (mainShape.equals("Oval")) {
-                //draws oval
-                //if statements there to draw oval if mouse moved behind original position
+                //	draws oval
+                //		the if statements are there to draw oval if 
+				//		the mouse moved behind original position
                 if ((pt2.y < pt1.y) && (pt2.x < pt1.x)) {
-                    g2.drawOval((int)pt1.getX() - cW, (int)pt1.getY() - cY, cW, cY);
+                    g2.drawOval((int)(pt1.getX() - cW), 
+						(int)(pt1.getY()) - cY, cW, cY);
                 } else if (pt2.y < pt1.y) {
-                    g2.drawOval((int)pt1.getX(), (int)pt1.getY() - cY, cW, cY);
+                    g2.drawOval((int)pt1.getX(), (int)pt1.getY() - cY, 
+						cW, cY);
                 } else if (pt2.x < pt1.x) {
-                    g2.drawOval((int)pt1.getX() - cW, (int)pt1.getY(), cW, cY);
+                    g2.drawOval((int)pt1.getX() - cW, (int)pt1.getY(), 
+						cW, cY);
                 } else {
-                    g2.drawOval((int)pt1.getX(), (int)pt1.getY(), cW, cY);
+                    g2.drawOval((int)pt1.getX(), (int)pt1.getY(), 
+						cW, cY);
                 }
             } else if (mainShape.equals("Square")) {
-                //find longest of width and height and use it as square length
+                //	find longest of width and height and use it as 
+				//		the square length
                 int cSq = cW < cY ? 2 * cY : 2 * cW;
-                //draws square with 4 lines
-                g2.drawLine((int)(pt1.getX() - (cSq / 2)), (int)(pt1.getY() - (cSq / 2)), (int)(pt1.getX() + (cSq / 2)), (int)(pt1.getY() - (cSq / 2)));
-                g2.drawLine((int)(pt1.getX() - (cSq / 2)), (int)(pt1.getY() - (cSq / 2)), (int)(pt1.getX() - (cSq / 2)), (int)(pt1.getY() + (cSq / 2)));
-                g2.drawLine((int)(pt1.getX() + (cSq / 2)), (int)(pt1.getY() + (cSq / 2)), (int)(pt1.getX() + (cSq / 2)), (int)(pt1.getY() - (cSq / 2)));
-                g2.drawLine((int)(pt1.getX() + (cSq / 2)), (int)(pt1.getY() + (cSq / 2)), (int)(pt1.getX() - (cSq / 2)), (int)(pt1.getY() + (cSq / 2)));
+                //	draws square with 4 lines
+                g2.drawLine((int)(pt1.getX() - (cSq / 2)), 
+					(int)(pt1.getY() - (cSq / 2)), 
+					(int)(pt1.getX() + (cSq / 2)), 
+					(int)(pt1.getY() - (cSq / 2)));
+                g2.drawLine((int)(pt1.getX() - (cSq / 2)), 
+					(int)(pt1.getY() - (cSq / 2)), 
+					(int)(pt1.getX() - (cSq / 2)), 
+					(int)(pt1.getY() + (cSq / 2)));
+                g2.drawLine((int)(pt1.getX() + (cSq / 2)), 
+					(int)(pt1.getY() + (cSq / 2)), 
+					(int)(pt1.getX() + (cSq / 2)), 
+					(int)(pt1.getY() - (cSq / 2)));
+                g2.drawLine((int)(pt1.getX() + (cSq / 2)), 
+					(int)(pt1.getY() + (cSq / 2)), 
+					(int)(pt1.getX() - (cSq / 2)), 
+					(int)(pt1.getY() + (cSq / 2)));
             } else if (mainShape.equals("Rectangle")) {
-                //draws rectangle with 4 lines
-                g2.drawLine((int)pt1.getX(), (int)pt1.getY(), (int)pt2.getX(), (int)pt1.getY());
-                g2.drawLine((int)pt1.getX(), (int)pt1.getY(), (int)pt1.getX(), (int)pt2.getY());
-                g2.drawLine((int)pt2.getX(), (int)pt2.getY(), (int)pt2.getX(), (int)pt1.getY());
-                g2.drawLine((int)pt2.getX(), (int)pt2.getY(), (int)pt1.getX(), (int)pt2.getY());
+                //	draws rectangle with 4 lines
+                g2.drawLine((int)pt1.getX(), (int)pt1.getY(), 
+					(int)pt2.getX(), (int)pt1.getY());
+                g2.drawLine((int)pt1.getX(), (int)pt1.getY(), 
+					(int)pt1.getX(), (int)pt2.getY());
+                g2.drawLine((int)pt2.getX(), (int)pt2.getY(), 
+					(int)pt2.getX(), (int)pt1.getY());
+                g2.drawLine((int)pt2.getX(), (int)pt2.getY(), 
+					(int)pt1.getX(), (int)pt2.getY());
             }
         } else if (outFill == 1) {
-            //filled shape
             
-            // get difference between the two points regardless of relative position
-            int cW = pt1.getX() < pt2.getX() ? (int)(pt2.getX() - pt1.getX()) : (int)(pt1.getX() - pt2.getX());
-            int cY = pt1.getY() < pt2.getY() ? (int)(pt2.getY() - pt1.getY()) : (int)(pt1.getY() - pt2.getY());
-            
-            g2.setColor(mainCol);
-            
-            if (mainShape.equals("FreeHand")) {
-                //draw line from previous pt2 to current pt2
-                g2.drawLine((int)pt3.getX(), (int)pt3.getY(), (int)pt2.getX(), (int)pt2.getY());
-                //pt3.x = (int)pt2.getX();
-                //pt3.y = (int)pt2.getY();
-            } else if (mainShape.equals("Line")) {
-                //line from mouse press point to mouse drag/release point
-                g2.drawLine((int)pt1.getX(), (int)pt1.getY(), (int)pt2.getX(), (int)pt2.getY());
-            } else if (mainShape.equals("Circle")) {
+			if (mainShape.equals("Circle")) {
                 //pythagors therom to get circle (not oval) radius
-                int circtacular = 2 * (int)(Math.sqrt((Math.pow(cW, 2) + Math.pow(cY, 2))));
-                g2.fillOval((int)(pt1.getX() - (circtacular / 2)), ((int)pt1.getY() - (circtacular / 2)), circtacular, circtacular);
+                int circtacular = 2 * (int)(Math.sqrt(
+					(Math.pow(cW, 2) + Math.pow(cY, 2)	)));
+                g2.fillOval((int)(pt1.getX() - (circtacular / 2)), 
+					((int)pt1.getY() - (circtacular / 2)), 
+					circtacular, circtacular);
             } else if (mainShape.equals("Oval")) {
                 //draws oval
                 //if statements there to draw oval if mouse moved behind original position
                 if ((pt2.y < pt1.y) && (pt2.x < pt1.x)) {
-                    g2.fillOval((int)pt1.getX() - cW, (int)pt1.getY() - cY, cW, cY);
+                    g2.fillOval((int)pt1.getX() - cW, 
+						(int)pt1.getY() - cY, cW, cY);
                 } else if (pt2.y < pt1.y) {
-                    g2.fillOval((int)pt1.getX(), (int)pt1.getY() - cY, cW, cY);
+                    g2.fillOval((int)pt1.getX(), (int)pt1.getY() - cY, 
+						cW, cY);
                 } else if (pt2.x < pt1.x) {
-                    g2.fillOval((int)pt1.getX() - cW, (int)pt1.getY(), cW, cY);
+                    g2.fillOval((int)pt1.getX() - cW, (int)pt1.getY(), 
+						cW, cY);
                 } else {
-                    g2.fillOval((int)pt1.getX(), (int)pt1.getY(), cW, cY);
+                    g2.fillOval((int)pt1.getX(), (int)pt1.getY(), 
+						cW, cY);
                 }
             } else if (mainShape.equals("Square")) {
-                //find longest of width and height and use it as square length
+                //	find longest of width and height and use it as 
+				//		square length
                 int cSq = cW < cY ? cY : cW;
-                //draw square
-                g2.fillRect((int)(pt1.getX() - cSq), (int)(pt1.getY() - cSq), 2 * cSq, 2 * cSq);
+                //	draw square
+                g2.fillRect((int)(pt1.getX() - cSq), 
+					(int)(pt1.getY() - cSq), 2 * cSq, 2 * cSq);
             } else if (mainShape.equals("Rectangle")) {
-                //draw rectangle
-                //if statements there to draw rectangle if mouse moved behind original position
+                //	draw rectangle
+                //		if statements there to draw rectangle if mouse 
+				//		moved behind original position
                 if ((pt2.y < pt1.y) && (pt2.x < pt1.x)) {
-                    g2.fillRect((int)pt1.getX() - cW, (int)pt1.getY() - cY, cW, cY);
+                    g2.fillRect((int)pt1.getX() - cW, 
+						(int)pt1.getY() - cY, cW, cY);
                 } else if (pt2.y < pt1.y) {
-                    g2.fillRect((int)pt1.getX(), (int)pt1.getY() - cY, cW, cY);
+                    g2.fillRect((int)pt1.getX(), (int)pt1.getY() - cY, 
+						cW, cY);
                 } else if (pt2.x < pt1.x) {
-                    g2.fillRect((int)pt1.getX() - cW, (int)pt1.getY(), cW, cY);
+                    g2.fillRect((int)pt1.getX() - cW, (int)pt1.getY(), 
+						cW, cY);
                 } else {
-                    g2.fillRect((int)pt1.getX(), (int)pt1.getY(), cW, cY);
+                    g2.fillRect((int)pt1.getX(), (int)pt1.getY(), 
+						cW, cY);
                 }
             }
         }
@@ -400,38 +438,42 @@ class Painter extends JPanel implements MouseListener,
         String Command = e.getActionCommand();
         
         if (Command.equals("Clear Image")) {
-            clear = 0;
+            clear = 1;
         } else if (Command.equals("Undo")) {
-            undo = 0;
+            undo = 1;
         }
-        
-        if (Command.equals("Black")) {
-            mainCol = new Color(0, 0, 0);
-            randCol = 1;
-        } else if (Command.equals("Red")) {
-            mainCol = new Color(255, 0, 0);
-            randCol = 1;
-        } else if (Command.equals("Yellow")) {
-            mainCol = new Color(255, 255, 0);
-            randCol = 1;
-        } else if (Command.equals("Green")) {
-            mainCol = new Color(0, 255, 0);
-            randCol = 1;
-        } else if (Command.equals("Cyan")) {
-            mainCol = new Color(0, 255, 255);
-            randCol = 1;
-        } else if (Command.equals("Blue")) {
-            mainCol = new Color(0, 0, 255);
-            randCol = 1;
-        } else if (Command.equals("Magenta")) {
-            mainCol = new Color(255, 0, 255);
-            randCol = 1;
-        } else if (Command.equals("White")) {
-            mainCol = new Color(255, 255, 255);
-            randCol = 1;
-        } else if (Command.equals("Random")) {
-            randCol = 0;
+		
+		if (Command.equals("Random")) {
+			randCol = 1;
+		} else {
+			if (Command.equals("Black")) {
+				mainCol = new Color(0, 0, 0);
+				randCol = 0;
+			} else if (Command.equals("Red")) {
+				mainCol = new Color(255, 0, 0);
+				randCol = 0;
+			} else if (Command.equals("Yellow")) {
+				mainCol = new Color(255, 255, 0);
+				randCol = 0;
+			} else if (Command.equals("Green")) {
+				mainCol = new Color(0, 255, 0);
+				randCol = 0;
+			} else if (Command.equals("Cyan")) {
+				mainCol = new Color(0, 255, 255);
+				randCol = 0;
+			} else if (Command.equals("Blue")) {
+				mainCol = new Color(0, 0, 255);
+				randCol = 0;
+			} else if (Command.equals("Magenta")) {
+				mainCol = new Color(255, 0, 255);
+				randCol = 0;
+			} else if (Command.equals("White")) {
+				mainCol = new Color(255, 255, 255);
+				randCol = 0;
+			}
         }
+		
+		
         
         if (Command.equals("FreeHand")) {
             mainShape = "FreeHand";
@@ -472,10 +514,10 @@ class Painter extends JPanel implements MouseListener,
         
         //messy code to deal with undo of freehand shape
         if (mainShape.equals("FreeHand")) {
-            print = 0;
-            freeHandFlag = 1;
+            print = 1;
+            freeHandFlag = 0;
         } else {
-            freeHandFlag = 1;
+            freeHandFlag = 0;
         }
         
         repaint();
@@ -483,13 +525,13 @@ class Painter extends JPanel implements MouseListener,
 
     @Override
     public void mouseReleased(MouseEvent e) {
-        //update pt2
+        //	update pt2
         pt2.x = e.getX();
         pt2.y = e.getY();
-        //set drag flag off to stop preview
-        drag = 1;
-        //set print flag on to print shape
-        print = 0;
+        //	set drag flag off to stop preview
+        drag = 0;
+        //	set print flag on to print shape
+        print = 1;
 
         repaint();
     }
@@ -500,20 +542,18 @@ class Painter extends JPanel implements MouseListener,
 
     @Override
     public void mouseDragged(MouseEvent e) {
-        //update pt2
+        //	update pt2
         pt2.x = e.getX();
         pt2.y = e.getY();
-        //set drag flag on to create preview
-        drag = 0;
-        
-        //to deal with undo of freehand shape
+        //	set drag flag on to create preview
+        drag = 1;
+        //	to deal with undo of freehand shape
         if (mainShape.equals("FreeHand")) {
-            //print shape
-            print = 0;
-            //stop refresh of undo buffer
-            freeHandFlag = 0;
+            //	print shape
+            print = 1;
+            //	stop refresh of undo buffer
+            freeHandFlag = 1;
         }
-        
         repaint();
     }
 
